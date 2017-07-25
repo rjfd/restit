@@ -1,0 +1,6 @@
+[run]
+branch = True
+omit =
+    tests/*
+    venv/*
+source = restit/
