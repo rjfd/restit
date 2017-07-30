@@ -140,16 +140,16 @@ class ResponseValidator(object):
                 ResponseValidator._validate_array(array_seq[1:], level_next,
                                                   resp[idx])
             elif array_seq[0] == '*':
-                for r in resp:
+                for elem in resp:
                     ResponseValidator._validate_array(array_seq[1:],
-                                                      level_next, r)
+                                                      level_next, elem)
             elif array_seq[0] == '+':
                 if len(resp) < 1:
                     raise BadResponseFormatException(
                         "array should not be empty")
-                for r in resp:
+                for elem in resp:
                     ResponseValidator._validate_array(array_seq[1:],
-                                                      level_next, r)
+                                                      level_next, elem)
             else:
                 raise Exception("Response structure is invalid: only <int> | "
                                 "'*' are allowed as array index arguments")
@@ -189,15 +189,15 @@ class ResponseValidator(object):
                 level = level[:-1]
 
         paths = []
-        lp = 0
+        depth = 0
         nested = 0
-        for i, c in enumerate(level):
-            if c == '&' and nested == 0:
-                paths.append(level[lp:i].strip())
-                lp = i + 1
-            elif c == '(':
+        for i, char in enumerate(level):
+            if char == '&' and nested == 0:
+                paths.append(level[depth:i].strip())
+                depth = i + 1
+            elif char == '(':
                 nested += 1
-            elif c == ')':
+            elif char == ')':
                 nested -= 1
-        paths.append(level[lp:].strip())
+        paths.append(level[depth:].strip())
         return paths

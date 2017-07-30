@@ -89,32 +89,32 @@ class RestClient(object):
     def _login(self, request=None):
         pass
 
-    def _is_logged_in(self):
+    def is_logged_in(self):
         pass
 
-    def _reset_login(self):
+    def reset_login(self):
         pass
 
     def is_service_online(self, request=None):
         pass
 
-    @staticmethod
-    def requires_login(func):
+    @classmethod
+    def requires_login(cls, func):
         def func_wrapper(self, *args, **kwargs):
             retries = 2
             while True:
                 try:
-                    if not self._is_logged_in():
-                        self._login()
+                    if not self.is_logged_in():
+                        self.login()
                     resp = func(self, *args, **kwargs)
                     return resp
-                except RequestException as e:
-                    if isinstance(e, BadResponseFormatException):
-                        raise e
+                except RequestException as ex:
+                    if isinstance(ex, BadResponseFormatException):
+                        raise ex
                     retries -= 1
-                    if e.status_code not in [401, 403] or retries == 0:
-                        raise e
-                    self._reset_login()
+                    if ex.status_code not in [401, 403] or retries == 0:
+                        raise ex
+                    self.reset_login()
         return func_wrapper
 
     def do_request(self, method, path, params=None, data=None,
@@ -176,6 +176,7 @@ class RestClient(object):
                                  self.client_name, method.upper())
                 else:
                     match = re.match(r'.*: \[Errno (-?\d+)\] (.+)',
+                                     # pylint: disable=E1101
                                      ex.args[0].reason.args[0])
                     if match:
                         errno = match.group(1)
@@ -224,22 +225,18 @@ class RestClient(object):
             return func_wrapper
         return call_decorator
 
-    @staticmethod
-    def api_get(path, resp_structure=None):
-        return RestClient.api(path, method='get',
-                              resp_structure=resp_structure)
+    @classmethod
+    def api_get(cls, path, resp_structure=None):
+        return cls.api(path, method='get', resp_structure=resp_structure)
 
-    @staticmethod
-    def api_post(path, resp_structure=None):
-        return RestClient.api(path, method='post',
-                              resp_structure=resp_structure)
+    @classmethod
+    def api_post(cls, path, resp_structure=None):
+        return cls.api(path, method='post', resp_structure=resp_structure)
 
-    @staticmethod
-    def api_put(path, resp_structure=None):
-        return RestClient.api(path, method='put',
-                              resp_structure=resp_structure)
+    @classmethod
+    def api_put(cls, path, resp_structure=None):
+        return cls.api(path, method='put', resp_structure=resp_structure)
 
-    @staticmethod
-    def api_delete(path, resp_structure=None):
-        return RestClient.api(path, method='delete',
-                              resp_structure=resp_structure)
+    @classmethod
+    def api_delete(cls, path, resp_structure=None):
+        return cls.api(path, method='delete', resp_structure=resp_structure)
