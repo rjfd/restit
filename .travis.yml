@@ -1,0 +1,19 @@
+language: python
+install:
+    - pip install tox
+    - pip install coverage==4.3
+    - pip install codeclimate-test-reporter
+matrix:
+    fast_finish: true
+    include:
+        - env: TOXENV=lint
+          python: '2.7'
+        - env: TOXENV=py27
+          python: '2.7'
+        - env: TOXENV=pep8
+          python: '2.7'
+script:
+    - tox -e $TOXENV
+after_success:
+    - test $TOXENV = py27 && codeclimate-test-reporter --debug
+cache: pip
