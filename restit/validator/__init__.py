@@ -13,7 +13,8 @@
 """
 
 from __future__ import absolute_import
-from ..exceptions import BadResponseFormatException
+from ..exceptions import BadResponseFormatException, \
+                         MalformedStructureException
 
 
 class ResponseValidator(object):
@@ -99,13 +100,19 @@ class ResponseValidator(object):
         if structure is None:
             return
 
+        if response is None:
+            raise BadResponseFormatException("Empty response")
+
         ResponseValidator._validate_level(structure, response)
 
     @staticmethod
     def _validate_level(level, resp):
-        if not isinstance(resp, dict) and not isinstance(resp, list):
-            raise BadResponseFormatException("{} is neither a dict or a list"
-                                             .format(resp))
+        if level == '':
+            if resp != {}:
+                raise BadResponseFormatException("'{}' is not an empty dict"
+                                                 .format(resp))
+            else:
+                return
 
         paths = ResponseValidator._parse_level_paths(level)
         for path in paths:
@@ -118,7 +125,9 @@ class ResponseValidator(object):
             key = path[:path_sep].strip()
 
             if key == '*':
-                continue
+                if not isinstance(resp, dict):
+                    raise BadResponseFormatException("'{}' is not a dict"
+                                                     .format(resp))
             elif key == '':  # check all keys
                 for k in resp.keys():
                     ResponseValidator._validate_key(k, level_next, resp)
@@ -129,13 +138,13 @@ class ResponseValidator(object):
     def _validate_array(array_seq, level_next, resp):
         if array_seq:
             if not isinstance(resp, list):
-                raise BadResponseFormatException("{} is not an array"
+                raise BadResponseFormatException("'{}' is not an array"
                                                  .format(resp))
             if array_seq[0].isdigit():
                 idx = int(array_seq[0])
                 if len(resp) <= idx:
                     raise BadResponseFormatException(
-                        "length of array {} is lower than the index {}"
+                        "length of array '{}' is lower than the index {}"
                         .format(resp, idx))
                 ResponseValidator._validate_array(array_seq[1:], level_next,
                                                   resp[idx])
@@ -151,8 +160,9 @@ class ResponseValidator(object):
                     ResponseValidator._validate_array(array_seq[1:],
                                                       level_next, elem)
             else:
-                raise Exception("Response structure is invalid: only <int> | "
-                                "'*' are allowed as array index arguments")
+                raise MalformedStructureException(
+                    "only <int> | '*' | '+' are allowed as array index "
+                    "arguments")
         else:
             if level_next:
                 ResponseValidator._validate_level(level_next, resp)
@@ -162,13 +172,16 @@ class ResponseValidator(object):
         array_access = [a.strip() for a in key.split("[")]
         key = array_access[0]
         if key:
+            if not isinstance(resp, dict):
+                raise BadResponseFormatException("'{}' is not a dict"
+                                                 .format(resp))
             optional = key[0] == '?'
             if optional:
                 key = key[1:]
             if key not in resp:
                 if optional:
                     return
-                raise BadResponseFormatException("key {} is not in dict {}"
+                raise BadResponseFormatException("key '{}' is not in dict {}"
                                                  .format(key, resp))
             resp_next = resp[key]
         else:
@@ -187,6 +200,10 @@ class ResponseValidator(object):
             level = level[1:]
             if level[-1] == ')':
                 level = level[:-1]
+            else:
+                raise MalformedStructureException(
+                    "There is no matching end parenthesis in '{}'"
+                    .format(level))
 
         paths = []
         depth = 0

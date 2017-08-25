@@ -27,3 +27,9 @@ class BadResponseFormatException(RequestException):
     def __init__(self, message):
         super(BadResponseFormatException, self).__init__(
             "Bad response format" if message is None else message, None)
+
+
+class MalformedStructureException(Exception):
+    def __init__(self, message):
+        super(MalformedStructureException, self).__init__(
+            "Malformed validation structure" if message is None else message)
