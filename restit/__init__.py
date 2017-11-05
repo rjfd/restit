@@ -43,14 +43,13 @@ class _Request(object):
         new_path = self.path
         matches = re.finditer(r'\{(\w+?)\}', self.path)
         for match in matches:
-            if match:
-                param_key = match.group(1)
-                if param_key in self.path_params:
-                    new_path = new_path.replace(match.group(0),
-                                                self.path_params[param_key])
-                else:
-                    raise RequestException('Invalid path. Param "{}" was not '
-                                           'specified'.format(param_key), None)
+            param_key = match.group(1)
+            if param_key in self.path_params:
+                new_path = new_path.replace(match.group(0),
+                                            self.path_params[param_key])
+            else:
+                raise RequestException('Invalid path. Param "{}" was not '
+                                       'specified'.format(param_key), None)
         return new_path
 
     def __call__(self, req_data=None, method=None, params=None, data=None,
@@ -68,10 +67,11 @@ class _Request(object):
                     raise Exception('Ambiguous source of {} data'
                                     .format(method.upper()))
                 data = req_data
-        resp = self.rest_client.do_request(method, self._gen_path(), params,
-                                           data, raw_content)
         if raw_content and self.resp_structure:
             raise Exception("Cannot validate reponse in raw format")
+
+        resp = self.rest_client.do_request(method, self._gen_path(), params,
+                                           data, raw_content)
         ResponseValidator.validate(self.resp_structure, resp)
         return resp
 
@@ -216,7 +216,7 @@ class RestClient(object):
                 resp_structure = api_kwargs.get('resp_structure', None)
                 args_name = inspect.getargspec(func).args
                 args_dict = dict(itertools.izip(args_name[1:], args))
-                for key, val in kwargs:
+                for key, val in kwargs.items():
                     args_dict[key] = val
                 return func(self, *args, request=_Request(method, path,
                                                           args_dict, self,
